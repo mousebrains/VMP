@@ -13,10 +13,10 @@ is:
 - New/updated `.mat` files
   - The file is split into profiles.
   - The cross correlation peak is found between the FP07 and JAC_T thermistors for each profile.
-  - The JAC_T and JAC_C are shifted by the lag found from the cross correlation.
+  - The JAC_T and JAC_C are shifted by the weighted median lag found from the cross correlations.
   - A fit with all the profiles FP07 and JAC_T is done.
-  - The T[12]_slow and T[12]_fast values are changed by the fit.
-  - Using all the JAC_T and JAC_C data for all the profiles, a shift found from the cross correlation.
+  - The FP07 temperatures are recomputed using the fit and overwrite the T?_(fast|slow) data.
+  - Using all the JAC_T and JAC_C data for all the profiles, a weighted median lag is computed from all the cross correlations.
   - JAC_C is shifted.
   - A GPS fix is assigned to each profile.
   - Seawater properties are computed for each profile.
