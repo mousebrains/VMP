@@ -11,7 +11,6 @@ arguments
     info struct,
 end % arguments
 
-%%
 [dissInfo, SH_HP, A_HP] = mkDissInfo(profile, info, pInfo, ...
     "diss_downwards_fft_length_sec", "diss_downwards_length_fac");
 
@@ -24,11 +23,18 @@ if info.trim_use % Trim the top of the profile
     end % for name
 end % if trim_use
 
-if size(SH_HP,1) >= dissInfo.diss_length % enough data to work with
-    diss = get_diss_odas(SH_HP, A_HP, dissInfo);
 
-    ratioWarn(diss, pInfo, info, "Top->Bot");
-    profile.diss = mkDissStruct(diss, dissInfo);
+if size(SH_HP,1) >= dissInfo.diss_length % enough data to work with
+    try
+        diss = get_diss_odas(SH_HP, A_HP, dissInfo);
+
+        ratioWarn(diss, pInfo, info, "Top->Bot");
+        profile.diss = mkDissStruct(diss, dissInfo);
+    catch ME
+        ME
+        profile.diss = mkEmptyDissStruct(dissInfo);
+    end % try
+
 else % Too little data, so fudge up profile.diss
     profile.diss = mkEmptyDissStruct(dissInfo);
 end % if ~isempty
@@ -56,10 +62,15 @@ if size(SH_HP,1) >= dissInfo.diss_length % enough data to work with
         dissInfo.(name) = flipud(dissInfo.(name));
     end % for name
 
-    diss = get_diss_odas(SH_HP, A_HP, dissInfo);
+    try
+        diss = get_diss_odas(SH_HP, A_HP, dissInfo);
 
-    ratioWarn(diss, pInfo, info, "Bot->Top");
-    profile.bbl = mkDissStruct(diss, dissInfo);
+        ratioWarn(diss, pInfo, info, "Bot->Top");
+        profile.bbl = mkDissStruct(diss, dissInfo);
+    catch ME
+        ME
+        profile.diss = mkEmptyDissStruct(dissInfo);
+    end % try
 else % Too little data, so fudge up profile.diss
     profile.diss = mkEmptyDissStruct(dissInfo);
 end % if ~isempty
