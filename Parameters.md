@@ -43,7 +43,7 @@
   - `fp07_calibration` Should FP07 calibration be done? (true or false) `(default: true)`
   - `fp07_order` Order of polynomial fit to use. `(default: 2)`
   - `fp07_reference` Reference slow variable to use for calibrating the FP07s. `(default: JAC_T)`
-- [Despike.md](Despiking) parameters
+- [Despiking](Despiking.md) parameters
   - `despike_sh_thres` Shear probe threshold `(default: 8)`
   - `despike_sh_smooth` Shear probe smoothing `(default: 0.5)`
   - `despike_sh_N_FS` Shear probe N_FS `(default: 0.05)`
@@ -52,7 +52,7 @@
   - `despike_A_smooth` Accelerometer probe smoothing `(default: 0.5)`
   - `despike_A_N_FS` Accelerometer probe N_FS `(default: 0.05)`
   - `despike_A_warning_fraction` Shear probe fraction above which to issue a warning. `(default: 0.03)`
-- [Dissipation.md](Dissipation) parameters
+- [Dissipation](Dissipation.md) parameters
  - `diss_T1Norm` Positive value to normalize T1_fast by to calclate T_fast. `(default: 1)`
  - `diss_T2Norm` Positive value to normalize T2_fast by to calclate T_fast. `(default: 1)`
  - `diss_warning_ratio` If the ratio of the e samples are further than this apart, tag as big. `(default: 5)`
@@ -63,7 +63,7 @@
  - Upward calculation
    - `diss_upwards_fft_length_sec` Seconds for the FFT length. `(default: 0.5)`
    - `diss_upwards_length_fac` Number of FFTs to combine. `(default: 2)`
-- [Bin.md](Binning) parameters
+- [Binning](Binning.md) parameters
  - `bin_method` How should bins values be calculated? (median or mean) `(default: median)`
  - `bin_width` With of a bin in decibars. Bins are centered on multiples of the width. `(default: 1)`
  - `bin_dissFloor` Values less than this value are set to NaN. `(default: 1e-11)`
