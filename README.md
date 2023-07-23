@@ -1,16 +1,30 @@
-# This code is designed to take 
-[https://rocklandscientific.com/products/profilers/vmp-250/](Rockland Scientific's Vertical Turbulence Profilers (VMP)) `.P` files and transform them into binned cast files.
+# Transform *VMP* `.P` files into binned data
 
 For a simple example to run on your code see [ASTRAL.m](ASTRAL.m)
 
 Hopefully, everything is parameterized and one just needs to call `processVMPfiles` with the appropriatep [Parameters.md](parameters.)
 
-The data flow is:
+---
+
+The data flow for
+[https://rocklandscientific.com/products/profilers/vmp-250/](VMP) `.P` files
+is:
 - New/updated `.P` files are transformed into .mat files using `odas_p2mat`
-- New/updated `.mat` files are split into profiles and saved into profiles `.mat` files
+- New/updated `.mat` files
+  - The file is split into profiles.
+  - The cross correlation peak is found between the FP07 and JAC_T thermistors for each profile.
+  - The JAC_T and JAC_C are shifted by the lag found from the cross correlation.
+  - A fit with all the profiles FP07 and JAC_T is done.
+  - The T[12]_slow and T[12]_fast values are changed by the fit.
+  - Using all the JAC_T and JAC_C data for all the profiles, a shift found from the cross correlation.
+  - JAC_C is shifted.
+  - A GPS fix is assigned to each profile.
+  - Seawater properties are computed for each profile.
+  - The profiles are saved into a single `.mat` file.
 - New/updated profile `.mat` files are binned and saved into binned `.mat` files
 - New/updated binned `.mat` files are combined togeter into a `combo.mat` file.
 
-The `.P` files are expected to be in directories like `SN142/*.p` Then the outputs are saved into a similar structure.
+The `.P` files are expected to be in directories like `SN142/*.[pP]` 
+The outputs are saved into a similar structure.
 
 The profiles and binned directories have a hash attached to their name which is unique to the input parameters. If you change any parameter, a new directory try will probably be generated.
