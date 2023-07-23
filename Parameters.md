@@ -25,14 +25,14 @@
   - `profile_speedMin` The minimum vertical speed to be in a cast. The units are m/s. `(default: 0.3)`
   - `profile_minDuration` The minimum duration of a cast in seconds. `(default: 7)`
   - `profile_direction` The cast direction, up or down. `(default: down)` ***The code has only been tested with down!!!***
-- Top [Trim.md](triming) parameters
+- Top [trimming](Trim.md) parameters
   - `trim_use` Should top trimming be done? (true or false) `(default: true)`
   - `trim_quantile` is the quantile of the various variance metrics to use. `(default: 0.6)`
   - `trim_dz` Triming bin width in decibars for calculating variances. `(default: 0.5)`
   - `trim_minDepth` The depth to start looking at for triming. `(default: 1)`
   - `trim_maxDepth` The depth to stop looking at for triming. `(default: 50)`
   - `trim_extraDepth` Additional depth added to the automatic trim depth. This is in decibars and can be positive or negative. `(default: 0)`
-- [BBL.md](Bottom boundary layer trimming) parameters ***Bottom crash detection not implemented***
+- [Bottom boundary layer trimming](BBL.md) parameters ***Bottom crash detection not implemented***
   - `bbl_use` Should bottom trimming be done? (true or false) `(default: false)`
   - `bbl_quantile` is the quantile of the various variance metrics to use. `(default: 0.6)`
   - `bbl_dz` BBL triming bin width in decibars for calculating variances. `(default: 0.5)`
