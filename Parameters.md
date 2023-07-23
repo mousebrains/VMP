@@ -39,7 +39,7 @@
   - `bbl_minDepth` The depth to start looking at for BBL triming. `(default: 10)`
   - `bbl_maxDepth` The depth to stop looking at for BBL triming. `(default: 50)`
   - `bbl_extraDepth` Additional depth added to the automatic BBL trim depth. This is in decibars and can be positive or negative. `(default: 0)`
-- [FP07calibration.md](FP07 calibration) parameters
+- [FP07 calibration and shift](FP07.md) parameters
   - `fp07_calibration` Should FP07 calibration be done? (true or false) `(default: true)`
   - `fp07_order` Order of polynomial fit to use. `(default: 2)`
   - `fp07_reference` Reference slow variable to use for calibrating the FP07s. `(default: JAC_T)`
