@@ -26,7 +26,8 @@ try
     filenames = convert2mat(filenames); % Convert .P to .mat files
     save(info.p2matFilename, "filenames"); % Save the list of filenames for future processing
 
-    filenames = filenames(union(18:19, 200),:) % tpw
+    % filenames
+    % filenames = filenames(union(18:19, 18),:) % tpw
     % q = filenames.basename == "data_0036" & filenames.sn == "SN465";
     % q(18:20) = true;
     % filenames = filenames(q,:)
