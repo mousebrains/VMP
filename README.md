@@ -1,5 +1,7 @@
 # This code is designed to take Rockland Scientific Vertical Turbulence Profilers *(VMP)* `.P` files and transform them into binned cast files.
 
+For a simple example to run on your code see [ASTRAL.m](ASTRAL.m)
+
 Hopefully, everything is parameterized and one just needs to call `processVMPfiles` with the appropriatep [Parameters.md](parameters.)
 
 The data flow is:
