@@ -25,13 +25,7 @@ try
     filenames = mkFilenames(info); % Build a list of filenames to be processed from .P files on disk
     filenames = convert2mat(filenames); % Convert .P to .mat files
     save(info.p2matFilename, "filenames"); % Save the list of filenames for future processing
-
-    % filenames
-    % filenames = filenames(union(18:19, 18),:) % tpw
-    % q = filenames.basename == "data_0036" & filenames.sn == "SN465";
-    % q(18:20) = true;
-    % filenames = filenames(q,:)
-
+    
     pInfo = mat2profiles(filenames, info); % Split into profiles
 
     bInfo = binData(pInfo, info); % Bin profiles into depth bins
