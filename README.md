@@ -2,7 +2,7 @@
 
 For a simple example to run on your code see [ASTRAL.m](ASTRAL.m)
 
-Hopefully, everything is parameterized and one just needs to call `processVMPfiles` with the appropriatep [Parameters.md](parameters.)
+Hopefully, everything is parameterized and one just needs to call `processVMPfiles` with the appropriatep [parameters](Parameters.md)
 
 ---
 
