@@ -48,18 +48,27 @@ for fnProf = unique(pInfo.fnProf)'
 
         fast = profile.fast;
         slow = profile.slow;
-        diss = profile.diss.tbl;
-        bbl = profile.bbl.tbl;
 
         fast.bin = interp1(allBins-dz/2, allBins, fast.P_fast, "previous"); % -dz/2 to find bin centroid
         slow.bin = interp1(allBins-dz/2, allBins, slow.P_slow, "previous");
-        diss.bin = interp1(allBins-dz/2, allBins, diss.P, "previous"); % Might be empty
-        bbl.bin = interp1(allBins-dz/2, allBins, bbl.P, "previous"); % Might be empty
 
         fast = fast(~isnan(fast.bin),:); % Take off values above the first bin
         slow = slow(~isnan(slow.bin),:);
-        diss = diss(~isnan(diss.bin),:);
-        bbl = bbl(~isnan(bbl.bin),:);
+
+        if isfield(profile, "diss") && isfield(profile.diss, "tbl")
+            diss = profile.diss.tbl;
+            diss.bin = interp1(allBins-dz/2, allBins, diss.P, "previous"); % Might be empty
+            diss = diss(~isnan(diss.bin),:);
+        else
+            diss = table();
+        end % if
+        if isfield(profile, "bbl") && isfield(profile.bbl, "tbl")
+            bbl = profile.bbl.tbl;
+            bbl.bin = interp1(allBins-dz/2, allBins, bbl.P, "previous"); % Might be empty
+            bbl = bbl(~isnan(bbl.bin),:);
+        else
+            bbl = table();
+        end % if
 
         if isempty(fast) || isempty(slow)
             fprintf("No bins found for profile %d in %s %s\n", ...
