@@ -1,4 +1,5 @@
-# This code is designed to take Rockland Scientific Vertical Turbulence Profilers *(VMP)* `.P` files and transform them into binned cast files.
+# This code is designed to take 
+[https://rocklandscientific.com/products/profilers/vmp-250/](Rockland Scientific's Vertical Turbulence Profilers (VMP)) `.P` files and transform them into binned cast files.
 
 For a simple example to run on your code see [ASTRAL.m](ASTRAL.m)
 
