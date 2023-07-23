@@ -1,0 +1,3 @@
+[submodule "general toolbox/cmocean"]
+	path = general toolbox/cmocean
+	url = git@github.com:matplotlib/cmocean.git
