@@ -84,11 +84,10 @@ end % if
 names = string(p.Parameters);
 
 for name = names(~ismember(names, p.UsingDefaults)) % Only work with non-default values
-    try
-        x = str2double(a.(name));
+    x = str2double(a.(name));
+    if ~isnan(x)
         a.(name) = x;
-    catch
-    end % try
+    end % if ~isnan
 end % for name
 
 for name = names(endsWith(names, "Root") & ~ismember(names, "dataRoot")) % Paths other than dataRoot
@@ -148,19 +147,22 @@ end % if
 
 if ~isnan(lhs)
     if (lhs > x) || (~clhs && lhs >= x)
-        return; 
+        return;
     end
 end % isnan lhs
 
 if ~isnan(rhs)
     if (rhs < x) || (~crhs && rhs <= x)
-        return; 
+        return;
     end
 end % isnan lhs
 q = true;
 end % inRange
 
 function name = abspath(name)
+arguments
+    name string
+end % arguments
 try
     items = dir(name);
     item = items(1);
