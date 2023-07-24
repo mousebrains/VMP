@@ -41,7 +41,6 @@ Except for the *bin* column, all columns in *tbl* are the number of casts wide b
 - *e* is a top down dissipation estimate in each depth bin
 - *e_bbl* is a bottom up dissipation estimate in each depth bin
 - *e* is the dissipation estimate using a top down FFT in each depth bin
-- $${\color{red}e}$$ sample
 
 To make a plot of the top down dissipation using `pcolor` one can do:
 
