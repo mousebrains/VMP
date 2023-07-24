@@ -24,6 +24,9 @@ is:
   - The profiles are saved into a single `.mat` file.
 - New/updated profile `.mat` files are binned and saved into binned `.mat` files
 - New/updated binned `.mat` files are combined togeter into a `combo.mat` file.
+- `combo.mat` is output in *NetCDF* format to `combo.nc`
+
+See [combo description](Combo.md) for information about the contents of `combo.mat`
 
 The `.P` files are expected to be in directories like `SN142/*.[pP]` 
 The outputs are saved into a similar structure.
