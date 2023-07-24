@@ -32,3 +32,8 @@ The `.P` files are expected to be in directories like `SN142/*.[pP]`
 The outputs are saved into a similar structure.
 
 The profiles and binned directories have a hash attached to their name which is unique to the input parameters. If you change any parameter, a new directory try will probably be generated.
+
+# TODO:
+- Add chi
+- Bottom crash detection
+- BBL stress
