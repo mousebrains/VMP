@@ -1,6 +1,6 @@
 # Transform *VMP* `.P` files into binned data
 
-## You will need the ODAS library which can be obtained directly from Rockland***
+## You will need the ODAS library which can be obtained directly from Rockland
 
 For a simple example to run on your code see [ASTRAL.m](ASTRAL.m)
 
