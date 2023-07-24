@@ -40,7 +40,7 @@ Except for the *bin* column, all columns in *tbl* are the number of casts wide b
 - *T1_slow*, *T2_slow*, *T1_fast*, and *T2_fast* temperature from FP07 sensors. If `fp07_calibrate` is enabled, these are from the FP07 calibration process.
 - *e* is a top down dissipation estimate in each depth bin
 - *e_bbl* is a bottom up dissipation estimate in each depth bin
-- *e* is the dissipation estimate using a top down FFT in each depth bin
+- \textcolor{red}{e} is the dissipation estimate using a top down FFT in each depth bin
 
 To make a plot of the top down dissipation using `pcolor` one can do:
 
