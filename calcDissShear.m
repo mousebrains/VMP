@@ -74,7 +74,7 @@ if size(SH_HP,1) >= dissInfo.diss_length % enough data to work with
 else % Too little data, so fudge up profile.diss
     profile.diss = mkEmptyDissStruct(dissInfo);
 end % if ~isempty
-end % despikeProfile
+end % calcDissShear
 
 function dInfo = mkEmptyDissStruct(dissInfo)
 arguments

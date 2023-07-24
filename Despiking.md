@@ -1,5 +1,7 @@
 # The despike parameters are used when calculating dissipation
 
+See [calcDissShear](calcDissShear.m) for the code that uses these parameters.
+
 The *despike_sh_*  are used for the shear probes, *sh1* and *sh2*.
 
 The *despike_A_*  are used for the acceleration sensors, *Ax* and *Ay*.
