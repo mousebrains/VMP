@@ -40,3 +40,5 @@ The profiles and binned directories have a hash attached to their name which is 
 - Add CTD for the entire files along with GPS fixes on the upcasts
 - Bottom crash detection
 - BBL stress
+- depth bins
+- dissipation combining smarter
