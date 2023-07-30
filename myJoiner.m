@@ -1,6 +1,19 @@
 % Join two tables together based on keys
+%
+% take variables from rhs if they exist in both lhs and rhs
+%
+% names are variables not included in join
+%
+% June-2023, Pat Welch, pat@mousebrains.com
 
 function lhs = myJoiner(lhs, rhs, keys, names)
+arguments
+    lhs table
+    rhs table
+    keys (:,1) string
+    names (:,1) string = strings(0,1)
+end % arguments
+
 if isempty(rhs), return; end
 
 [~, iLeft, iRight] = outerjoin(lhs, rhs, "Keys", keys);
