@@ -19,6 +19,7 @@ addParameter(p, "vmpRoot", "VMP", validString); % Where P files are located
 addParameter(p, "matRoot", "VMP/Matfiles", validString); % Where to write mat file versions of P files
 addParameter(p, "profileRoot", "VMP", validString); % Where to write profiles
 addParameter(p, "binnedRoot", "VMP", validString); % Where to write binned data
+addParameter(p, "ctdRoot", "VMP", validString); % Where to write CTD/DO data
 addParameter(p, "logRoot", "VMP", validString); % Where to store the log file
 %% GPS related parameters
 addParameter(p, "gpsFilename", "GPS/gps.nc", validString); % Relative to dataRoot
@@ -72,7 +73,31 @@ addParameter(p, "bin_method", "median", @(x) ismember(x, ["median", "mean"])); %
 addParameter(p, "bin_Width", 1, validPositive); % Bin width in (m)
 addParameter(p, "bin_dissFloor", 1e-11, validPositive); % Dissipation estimates less than this are set to nan, for bad electronics
 addParameter(p, "bin_dissRatio", 5, validPositive); % If different probes are within this ratio, then use mean else the smaller one
-
+%% NetCDF global attributes
+addParameter(p, "netCDF_acknoledgement", missing, validString);
+addParameter(p, "netCDF_contributer_name", missing, validString);
+addParameter(p, "netCDF_contributer_role", missing, validString);
+addParameter(p, "netCDF_creator_email", missing, validString);
+addParameter(p, "netCDF_creator_institution", missing, validString);
+addParameter(p, "netCDF_creator_name", missing, validString);
+addParameter(p, "netCDF_creator_type", missing, validString);
+addParameter(p, "netCDF_creator_url", missing, validString);
+addParameter(p, "netCDF_id", missing, validString);
+addParameter(p, "netCDF_institution", missing, validString);
+addParameter(p, "netCDF_instrument_vocabulary", missing, validString);
+addParameter(p, "netCDF_license", missing, validString);
+addParameter(p, "netCDF_metadata_link", missing, validString);
+addParameter(p, "netCDF_platform", missing, validString);
+addParameter(p, "netCDF_platform_vocabulary", missing, validString);
+addParameter(p, "netCDF_product_version", missing, validString);
+addParameter(p, "netCDF_program", missing, validString);
+addParameter(p, "netCDF_project", missing, validString);
+addParameter(p, "netCDF_publisher_email", missing, validString);
+addParameter(p, "netCDF_publisher_institution", missing, validString);
+addParameter(p, "netCDF_publisher_name", missing, validString);
+addParameter(p, "netCDF_publisher_type", missing, validString);
+addParameter(p, "netCDF_publisher_url", missing, validString);
+%%
 parse(p, varargin{:});
 a = p.Results(1);
 
@@ -117,6 +142,7 @@ hash_profile = string(dec2hex(keyHash(jsonencode(rmfield(a, names(~qProfile)))))
 hash_bin = string(dec2hex(keyHash(jsonencode(rmfield(a, names(~qBinned))))));
 a.profileRoot = fullfile(a.profileRoot, append("profiles.", hash_profile)); % Where to save profiles
 a.binnedRoot = fullfile(a.binnedRoot, append("binned.", hash_bin)); % Where to save binned data
+a.ctdRoot = fullfile(a.ctdRoot, append("CTD.", hash_profile));
 
 a.logFilename = fullfile(a.logRoot, "log.txt"); % output of dairy
 a.p2matFilename = fullfile(a.matRoot, "filenames.mat"); % filenames information table
@@ -124,6 +150,10 @@ a.profileInfoFilename = fullfile(a.profileRoot, "profileInfo.mat"); % Profile in
 a.castInfoFilename = fullfile(a.binnedRoot, "cast.info.mat");
 a.comboInfoFilename = fullfile(a.binnedRoot, "combo.info.mat");
 a.comboFilename = fullfile(a.binnedRoot, "combo.mat");
+a.ctdFilename = fullfile(a.ctdRoot, "CTD.mat");
+a.ctdInfoFilename = fullfile(a.ctdRoot, "CTD.info.mat");
+a.chlorophyllFilename = fullfile(a.ctdRoot, "chlorophyll.mat");
+a.chlorophyllInfoFilename = fullfile(a.ctdRoot, "chlorophyll.info.mat");
 end % getInfo
 
 %% Function to check if a value, string or numeric, is in a range, open/closed
