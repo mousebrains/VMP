@@ -31,12 +31,10 @@ try
     pInfo = mat2profiles(filenames, info); % Split into profiles
 
     bInfo = binData(pInfo, info); % Bin profiles into depth bins
-
     cInfo = mkCombo(bInfo, info); % Combine profiles together
     mkComboNetCDF(info); % Create a NetCDF version of combo.mat, if needed
 
-    mkComboCTD("ctd", pInfo, info); % Combine CTD/DO from multiple files
-    mkComboCTD("chlorophyll", pInfo, info); % Combine Chlorophyll from multiple files
+    binCTD(pInfo, info); % Bin CTD and CTD data by time bins
 catch ME
     fprintf("\n\nEXCEPTION\n%s\n\n", getReport(ME));
 end % try
