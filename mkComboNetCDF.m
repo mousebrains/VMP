@@ -11,7 +11,7 @@ function mkComboNetCDF(info)
 arguments
     info struct
 end % arguments
-%%
+
 fnCombo = info.comboFilename;
 [dirname, basename] = fileparts(fnCombo);
 fnNC = fullfile(dirname, append(basename, ".nc"));
@@ -46,9 +46,6 @@ cInfo = combo.info;
 tbl = combo.tbl;
 
 cInfo = removevars(cInfo, ["basename", "sn", "qUse", "fnM", "fnProf", "fnBin", "index"]);
-head(cInfo)
-head(tbl)
-
 
 [attrG, attrV, nameMap, compressionLevel] = nc_loadJSON(fnJSON, info, cInfo);
 
