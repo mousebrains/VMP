@@ -27,7 +27,6 @@ myDir = fileparts(mfilename("fullpath"));
 fnCDL = fullfile(myDir, "Combo.json");
 
 myMkNetCDF(fnNC, combo, info, fnCDL);
-error("GOTME");
 end % mkComboNetCDF
 
 %
@@ -83,7 +82,6 @@ nc_putVar(ncid, varID, cInfo);
 nc_putVar(ncid, tblID, tbl);
 
 netcdf.close(ncid);
-error("GotMe");
 end % mkNetCDF
 
 function resolution = mkResolution(t)
