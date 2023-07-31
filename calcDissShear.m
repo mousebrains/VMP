@@ -27,6 +27,7 @@ end % if trim_use
 if size(SH_HP,1) >= dissInfo.diss_length % enough data to work with
     try
         diss = get_diss_odas(SH_HP, A_HP, dissInfo);
+        diss.depth = interp1(profile.slow.t_slow, profile.slow.depth, diss.t, "linear", "extrap");
 
         ratioWarn(diss, pInfo, info, "Top->Bot");
         profile.diss = mkDissStruct(diss, dissInfo);
@@ -64,6 +65,7 @@ if size(SH_HP,1) >= dissInfo.diss_length % enough data to work with
 
     try
         diss = get_diss_odas(SH_HP, A_HP, dissInfo);
+        diss.depth = interp1(profile.slow.t_slow, profile.slow.depth, diss.t, "linear", "extrap");
 
         ratioWarn(diss, pInfo, info, "Bot->Top");
         profile.bbl = mkDissStruct(diss, dissInfo);
