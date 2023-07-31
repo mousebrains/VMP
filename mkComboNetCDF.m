@@ -1,8 +1,11 @@
 % Create a NetCDF version of the combo mat file
 %
+% There are two tables in the file, info and tbl
+%
+% We'll have two dimensions, info.t0 and tbl.bin, so special from mkNetCDF
+%
 % July-2023, Pat Welch, pat@mousebrains.com
 %
-%%
 
 function mkComboNetCDF(info)
 arguments
@@ -18,85 +21,78 @@ if isnewer(fnNC, fnCombo)
     return;
 end % if isnewer
 
-a = load(fnCombo);
+combo = load(fnCombo); % info and tbl
 
-if exist(fnNC, "file"), delete(fnNC); end
+myDir = fileparts(mfilename("fullpath"));
+fnCDL = fullfile(myDir, "Combo.json");
 
-ncid = netcdf.create(fnNC, bitor(netcdf.getConstant("CLOBBER"), netcdf.getConstant("NETCDF4")));
-dimIDs = nan(2,1);
-dimIDs(1) = netcdf.defDim(ncid, "time", size(a.info,1));
-dimIDs(2) = netcdf.defDim(ncid, "bin", size(a.tbl,1));
-infoIDs = createVars(ncid, a.info, struct("t0", "time"), dimIDs);
-tblIDs = createVars(ncid, a.tbl, struct("bin", "depth"), flipud(dimIDs));
-netcdf.endDef(ncid);
-putVars(ncid, a.info, infoIDs);
-putVars(ncid, a.tbl, tblIDs);
-netcdf.close(ncid);
+myMkNetCDF(fnNC, combo, info, fnCDL);
+error("GOTME");
 end % mkComboNetCDF
 
-%%
+%
+% This is a bastardized version of mkNetCDF
+%
+% July-2023, Pat Welch, pat@mousebrains.com
 
-function putVars(ncid, tbl, varIDs)
+function myMkNetCDF(fn, combo, info, fnJSON)
 arguments
-    ncid double
-    tbl table
-    varIDs struct
+    fn string     % Output filename
+    combo struct  % Input data
+    info struct   % parameters from getInfo
+    fnJSON string % JSON file defining variable attributes
 end % arguments
 
-for name = string(tbl.Properties.VariableNames)
-    val = tbl.(name);
-    switch class(val)
-        case "datetime"
-            val = posixtime(val);
-        case "logical"
-            val = uint8(val);
-    end % switch
+cInfo = combo.info;
+tbl = combo.tbl;
 
-    netcdf.putVar(ncid, varIDs.(name), val);
-end % for name
-end % putVars
+cInfo = removevars(cInfo, ["basename", "sn", "qUse", "fnM", "fnProf", "fnBin", "index"]);
+head(cInfo)
+head(tbl)
 
-function ids = createVars(ncid, tbl, toRename, dimids)
+
+[attrG, attrV, nameMap, compressionLevel] = nc_loadJSON(fnJSON, info, cInfo);
+
+attrG.geospatial_vertical_min = min(tbl.bin);
+attrG.geospatial_vertical_max = max(tbl.bin);
+attrG.geospatial_bounds_vertical = sprintf("%f,%f", ...
+    attrG.geospatial_vertical_min, attrG.geospatial_vertical_max);
+fmt = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'";
+tMin = min(cInfo.t0);
+tMax = max(cInfo.t1);
+attrG.time_coverage_end = string(tMax, fmt);
+attrG.time_coverage_duration = sprintf("T%fS", seconds(tMax - tMin));
+attrG.time_coverage_resolution = sprintf("T%fS", seconds(mkResolution(tbl.t)));
+
+if exist(fn, "file"), delete(fn); end
+
+ncid = netcdf.create(fn, ... % Create a fresh copy
+    bitor(netcdf.getConstant("CLOBBER"), netcdf.getConstant("NETCDF4")));
+
+nc_putAtt(ncid, netcdf.getConstant("NC_GLOBAL"), attrG); % Add any global attributes
+
+dimIDs = nan(2,1);
+dimIDs(1) = netcdf.defDim(ncid, "bin", size(tbl,1));
+dimIDs(2) = netcdf.defDim(ncid, "time", size(cInfo,1));
+
+varID = nc_createVariables(ncid, dimIDs(2), nameMap, cInfo, attrV, compressionLevel);
+tblID = nc_createVariables(ncid, dimIDs, nameMap, tbl, attrV, compressionLevel);
+netcdf.endDef(ncid);
+
+nc_putVar(ncid, varID, cInfo);
+nc_putVar(ncid, tblID, tbl);
+
+netcdf.close(ncid);
+error("GotMe");
+end % mkNetCDF
+
+function resolution = mkResolution(t)
 arguments
-    ncid double
-    tbl table
-    toRename struct
-    dimids double
+    t datetime
 end % arguments
 
-names = string(tbl.Properties.VariableNames);
-[~, ix] = sort(lower(names)); % Dictionary sort
-names = names(ix);
-ids = struct();
-for index = 1:numel(names)
-    name = names(index);
-    tgt = name;
-    if isfield(toRename, name), tgt = toRename.(name); end
-    val = tbl.(name);
-    if iscolumn(val)
-        dID = dimids(1);
-    else
-        dID = dimids;
-    end % if
-    varID = netcdf.defVar(ncid, tgt, mkXType(val), dID);
-    ids.(name) = varID;
-    netcdf.defVarDeflate(ncid, varID, false, true, 5);
-    if isa(val, "datetime")
-        netcdf.putAtt(ncid, varID, "units", "seconds since 1970-01-01");
-        netcdf.putAtt(ncid, varID, "calendar", "proleptic_gregorian");
-    end % if isa
-end % for
-end % createVars
-
-function x = mkXType(val)
-switch class(val)
-    case {"double", "datetime"}
-        x = netcdf.getConstant("NC_DOUBLE");
-    case "string"
-        x = netcdf.getConstant("NC_STRING");
-    case "logical"
-        x = netcdf.getConstant("NC_UBYTE");
-    otherwise
-        error("Unrecognized type %s", class(val));
-end % switch
-end % mkXType
+dt = diff(t);
+n = sum(~isnan(dt));
+mu = mean(dt, "omitmissing");
+resolution = sum(mu .* n) ./ sum(n);
+end % mkResolution
