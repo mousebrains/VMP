@@ -1,12 +1,14 @@
 %
 % This has a strong assumption of doing tow-yo or station cast operations!!!!!!!!
 %
+% Extract CTD, DO, Fluorometer information for the whole file.
+
 % Attempt to assign not insande Lat/Lon positions to the CTD data
 % while it is being reeled back in.
 %
 % July-2023, Pat Welch, pat@mousebrains.com
 
-function ctd = mkCTD(a, indicesSlow, gps)
+function [ctd, fast] = mkCTD(a, indicesSlow, gps)
 arguments
     a struct
     indicesSlow (2,:) int64
@@ -14,13 +16,36 @@ arguments
 end % arguments
 arguments (Output)
     ctd table
+    fast table
 end % arguments
 
+nameMap = struct( ...
+    "P_slow", "P", ...
+    "JAC_T", "T", ...
+    "JAC_C", "C", ...
+    "Chlorophyll", "Chlorophyll", ...
+    "Turbidity", "Turbidity", ...
+    "DO", "DO", ...
+    "DO_T", "DO" ...
+    );
+
 ctd = table();
-ctd.t = datetime(append(a.date, " ", a.time)) + seconds(a.t_slow);
-ctd.P = a.P_slow;
-ctd.T = a.JAC_T;
-ctd.C = a.JAC_C;
+fast = table();
+t0 = datetime(append(a.date, " ", a.time));
+ctd.t = t0 + seconds(a.t_slow);
+fast.t = t0 + seconds(a.t_fast);
+szSlow = size(ctd.t);
+for name = string(fieldnames(nameMap))'
+    if isfield(a, name)
+        val = a.(name);
+        key = nameMap.(name);
+        if isequal(size(val), szSlow)
+            ctd.(key) = val;
+        else
+            fast.(key) = val;
+        end % if isequal
+    end % if
+end % for name
 
 ctd = addGPS(ctd, indicesSlow, gps);
 
@@ -29,7 +54,16 @@ ctd.SA = gsw_SA_from_SP(ctd.SP, ctd.P, ctd.lon, ctd.lat); % Absolute salinity
 ctd.theta = gsw_CT_from_t(ctd.SA, ctd.T, ctd.P); % Conservation T
 ctd.sigma = gsw_sigma0(ctd.SA, ctd.theta);
 ctd.rho = gsw_rho(ctd.SA, ctd.theta, ctd.P) - 1000; % density kg/m^3 - 1000
-end
+ctd.depth = gsw_depth_from_z(gsw_z_from_p(ctd.P, ctd.lat)); % Depth  in meters
+
+if size(fast,2) > 1
+    fast.lat = interp1(ctd.t, ctd.lat, fast.t, "linear", "extrap");
+    fast.lon = interp1(ctd.t, ctd.lon, fast.t, "linear", "extrap");
+    fast.depth = interp1(ctd.t, ctd.depth, fast.t, "linear", "extrap");
+else
+    fast = [];
+end % if size
+end % mkCTD
 
 function ctd = addGPS(ctd, indices, gps)
 if isempty(indices) % No casts
