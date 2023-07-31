@@ -8,6 +8,8 @@ arguments
     info struct
 end % arguments
 %%
+stime = tic();
+
 cInfo = bInfo;
 cInfo.qIncluded = false(size(cInfo,1),1);
 
@@ -23,42 +25,35 @@ end % if exist
 allNames = []; % All the column names in the combo file
 bins = []; % All the depth bins
 nCasts = 0;
-casts = cell(size(cInfo,1)+1,1); % +1 for combo file itself
 
-for index = 1:size(cInfo,1)
-    row = cInfo(index,:);
+filenames = unique(cInfo.fnBin(cInfo.qUse & ~cInfo.qIncluded));
+qExist = isfile(info.comboFilename);
+casts = cell(numel(filenames)+qExist,1); % +1 for combo file itself
 
-    if ~row.qUse
-        % fprintf("Skiping %s %s due to qUse\n", row.sn, row.basename);
-        continue;
-    end % if ~qUse
-    
-    if row.qIncluded
-        % fprintf("Skipping %s %s due to qIncluded\n", row.sn, row.basename);
-        continue;
-    end % qIncluded
-
-    a = load(row.fnBin);
-    casts{index} = a;
-    allNames = union(allNames, a.tbl.Properties.VariableNames);
-    nCasts = nCasts + size(a.info,1);
-    bins = union(bins, a.tbl.bin);
+for index = 1:numel(filenames)
+    stime = tic();
+    fn = filenames(index);
+    rhs = load(fn);
+    if isempty(rhs), continue; end % I don't expect this to ever happen, but...
+    casts{index} = rhs;
+    allNames = union(allNames, rhs.tbl.Properties.VariableNames);
+    nCasts = nCasts + size(rhs.info,1);
+    bins = union(bins, rhs.tbl.bin);
 end % for index
 
 if nCasts == 0
-    fprintf("Nothing to add to combo\n");
+    fprintf("Nothing new to add to combo\n");
     return;
 end % if nCasts
 
 if exist(info.comboFilename, "file") % Previous combo file exists, so append to list
-    casts{end} = a;
-    allNames = union(allNames, a.tbl.Properties.VariableNames);
-    nCasts = nCasts + size(a.info,1);
-    bins = union(bins, a.tbl.bin);
+    casts{end} = rhs;
+    allNames = union(allNames, rhs.tbl.Properties.VariableNames);
+    nCasts = nCasts + size(rhs.info,1);
+    bins = union(bins, rhs.tbl.bin);
 end % if
 
-q = cellfun(@isempty, casts);
-casts = casts(~q); % Something is here since nCasts > 0
+casts = casts(~cellfun(@isempty, casts)); % Prune empty casts
 
 nTall = numel(bins); % Total number of bins we'll have
 
@@ -81,7 +76,6 @@ for index = 1:numel(casts)
     items = casts{index};
     rhs = items.tbl;
     timeInfo{index} = items.info;
-
     [~, iLeft, iRight] = innerjoin(tbl, rhs, "Keys", "bin");
     nWide = size(rhs.t,2);
     ii = (1:nWide) + offset;
@@ -91,7 +85,7 @@ for index = 1:numel(casts)
     end % for name
 end % for index
 
-timeInfo = vertcat(timeInfo{:});
+timeInfo = vertcat(timeInfo{:}); % Glue timeInfo together into a single table
 
 [~, ix] = unique(timeInfo(:,["t0", "sn", "basename"])); % Unique and ascending in time per instrument
 timeInfo = timeInfo(ix,:);
@@ -109,5 +103,6 @@ cInfo.qIncluded(:) = true;
 
 save(info.comboInfoFilename, "cInfo");
 
-fprintf("Wrote %dx%d to %s\n", size(tbl.t,1), size(tbl.t, 2), info.comboFilename);
+fprintf("Took %.2f seconds to write %dx%d to %s\n", ...
+    toc(stime), size(tbl.t,1), size(tbl.t, 2), info.comboFilename);
 end % mkCombo
