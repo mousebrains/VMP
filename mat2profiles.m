@@ -91,6 +91,8 @@ for index = 1:size(filenames, 1) % Walk through filenames
         gps = info.gpsClass(info.gpsFilename, info.gpsMethod);
     end % if isempty gps
 
+    [ctd, chlorophyll] = mkCTD(a, indicesSlow, gps);
+
     profiles = cell(nProfiles, 1);
     profileInfo = mkProfileInfo(fRow, nProfiles);
 
@@ -137,11 +139,13 @@ for index = 1:size(filenames, 1) % Walk through filenames
         profile.lon = gps.lon(profile.slow.t(1)); % Longitude at start of profile
         profile.dtGPS = gps.dt(profile.slow.t(1)); % Nearest GPS timestamp
         profile.slow = addSeawaterProperties(profile); % SP/SA/theta/rho/...
+        profile.fast.depth = interp1(profile.slow.t_slow, profile.slow.depth, ...
+            profile.fast.t_fast, "linear", "extrap");
         profileInfo.lat(j) = profile.lat;
         profileInfo.lon(j) = profile.lon;
         profileInfo.dtGPS(j) = profile.dtGPS;
-        profileInfo.minDepth(j) = min(profile.slow.P_slow);
-        profileInfo.maxDepth(j) = max(profile.slow.P_slow);
+        profileInfo.minDepth(j) = min(profile.slow.depth);
+        profileInfo.maxDepth(j) = max(profile.slow.depth);
         profileInfo.t0(j) = profile.slow.t(1);
         profileInfo.t1(j) = profile.slow.t(end);
         profileInfo.nSlow(j) = numel(ii);
@@ -193,6 +197,8 @@ for index = 1:size(filenames, 1) % Walk through filenames
     profilesInfo.profiles = profiles;
     profilesInfo.fRow = fRow;
     profilesInfo.pInfo = profileInfo;
+    profilesInfo.ctd = ctd;
+    profilesInfo.chlorophyll = chlorophyll;
     save(fnProf, "-struct", "profilesInfo");
 
     fprintf("%s took %.2f seconds to extract %d profiles\n", ...
