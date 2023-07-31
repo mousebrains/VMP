@@ -25,14 +25,18 @@ try
     filenames = mkFilenames(info); % Build a list of filenames to be processed from .P files on disk
     filenames = convert2mat(filenames); % Convert .P to .mat files
     save(info.p2matFilename, "filenames"); % Save the list of filenames for future processing
-    
+
+    % filenames = filenames(union(18,200:202),:);
+
     pInfo = mat2profiles(filenames, info); % Split into profiles
 
     bInfo = binData(pInfo, info); % Bin profiles into depth bins
 
     cInfo = mkCombo(bInfo, info); % Combine profiles together
-
     mkComboNetCDF(info); % Create a NetCDF version of combo.mat, if needed
+
+    mkComboCTD("ctd", pInfo, info); % Combine CTD/DO from multiple files
+    mkComboCTD("chlorophyll", pInfo, info); % Combine Chlorophyll from multiple files
 catch ME
     fprintf("\n\nEXCEPTION\n%s\n\n", getReport(ME));
 end % try
