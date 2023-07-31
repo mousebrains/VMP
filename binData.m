@@ -49,8 +49,8 @@ for fnProf = unique(pInfo.fnProf)'
         fast = profile.fast;
         slow = profile.slow;
 
-        fast.bin = interp1(allBins-dz/2, allBins, fast.P_fast, "previous"); % -dz/2 to find bin centroid
-        slow.bin = interp1(allBins-dz/2, allBins, slow.P_slow, "previous");
+        fast.bin = interp1(allBins-dz/2, allBins, fast.depth, "previous"); % -dz/2 to find bin centroid
+        slow.bin = interp1(allBins-dz/2, allBins, slow.depth, "previous");
 
         fast = fast(~isnan(fast.bin),:); % Take off values above the first bin
         slow = slow(~isnan(slow.bin),:);
@@ -98,7 +98,7 @@ for fnProf = unique(pInfo.fnProf)'
         % Merge slow and fast tables
 
         tblF = removevars(tblF, "grp");
-        tblS = removevars(tblS, "grp");
+        tblS = removevars(tblS, ["grp", "depth"]);
 
         tblF = renamevars(tblF, "GroupCount", "cntFast");
         tblS = renamevars(tblS, "GroupCount", "cntSlow");
