@@ -25,8 +25,6 @@ for fnProf = unique(pInfo.fnProf)'
     pRows = pInfo(pInfo.fnProf == fnProf & pInfo.qUse,:);
     fnBin = pRows.fnBin(1); % They are all the same name
 
-    fprintf("fnBin %s\n", fnBin);
-    fprintf("fnPro %s\n", fnProf);
     if isnewer(fnBin, fnProf)
         fprintf("Skipping %s %s, already exist\n", pRows.sn(1), pRows.basename(1));
         continue;
