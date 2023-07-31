@@ -74,9 +74,9 @@ addParameter(p, "bin_Width", 1, validPositive); % Bin width in (m)
 addParameter(p, "bin_dissFloor", 1e-11, validPositive); % Dissipation estimates less than this are set to nan, for bad electronics
 addParameter(p, "bin_dissRatio", 5, validPositive); % If different probes are within this ratio, then use mean else the smaller one
 %% NetCDF global attributes
-addParameter(p, "netCDF_acknoledgement", missing, validString);
-addParameter(p, "netCDF_contributer_name", missing, validString);
-addParameter(p, "netCDF_contributer_role", missing, validString);
+addParameter(p, "netCDF_acknowledgement", missing, validString);
+addParameter(p, "netCDF_contributor_name", missing, validString);
+addParameter(p, "netCDF_contributor_role", missing, validString);
 addParameter(p, "netCDF_creator_email", missing, validString);
 addParameter(p, "netCDF_creator_institution", missing, validString);
 addParameter(p, "netCDF_creator_name", missing, validString);
