@@ -73,6 +73,8 @@ addParameter(p, "bin_method", "median", @(x) ismember(x, ["median", "mean"])); %
 addParameter(p, "bin_Width", 1, validPositive); % Bin width in (m)
 addParameter(p, "bin_dissFloor", 1e-11, validPositive); % Dissipation estimates less than this are set to nan, for bad electronics
 addParameter(p, "bin_dissRatio", 5, validPositive); % If different probes are within this ratio, then use mean else the smaller one
+%% CTD time binning parameters
+addParameter(p, "bin_ctd_dt", 0.5, validPositive); % Width in seconds of CTD binning
 %% NetCDF global attributes
 addParameter(p, "netCDF_acknowledgement", missing, validString);
 addParameter(p, "netCDF_contributor_name", missing, validString);
@@ -142,7 +144,7 @@ hash_profile = string(dec2hex(keyHash(jsonencode(rmfield(a, names(~qProfile)))))
 hash_bin = string(dec2hex(keyHash(jsonencode(rmfield(a, names(~qBinned))))));
 a.profileRoot = fullfile(a.profileRoot, append("profiles.", hash_profile)); % Where to save profiles
 a.binnedRoot = fullfile(a.binnedRoot, append("binned.", hash_bin)); % Where to save binned data
-a.ctdRoot = fullfile(a.ctdRoot, append("CTD.", hash_profile));
+a.ctdRoot = fullfile(a.ctdRoot, append("CTD.", hash_bin));
 
 a.logFilename = fullfile(a.logRoot, "log.txt"); % output of dairy
 a.p2matFilename = fullfile(a.matRoot, "filenames.mat"); % filenames information table
