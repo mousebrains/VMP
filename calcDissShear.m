@@ -32,7 +32,11 @@ if size(SH_HP,1) >= dissInfo.diss_length % enough data to work with
         ratioWarn(diss, pInfo, info, "Top->Bot");
         profile.diss = mkDissStruct(diss, dissInfo);
     catch ME
-        ME
+        fprintf("Error calculating Top->Bottom dissipation, %s\n", ME.message);
+        for i = 1:numel(ME.stack)
+            stk = ME.stack(i);
+            fprintf("Stack(%d) line=%d name=%s file=%s\n", stk.line, stk.name, stk.file);
+        end % for i
         profile.diss = mkEmptyDissStruct(dissInfo);
     end % try
 
@@ -70,7 +74,11 @@ if size(SH_HP,1) >= dissInfo.diss_length % enough data to work with
         ratioWarn(diss, pInfo, info, "Bot->Top");
         profile.bbl = mkDissStruct(diss, dissInfo);
     catch ME
-        ME
+        fprintf("Error calculating Bottom->Top dissipation, %s\n", ME.message);
+        for i = 1:numel(ME.stack)
+            stk = ME.stack(i);
+            fprintf("Stack(%d) line=%d name=%s file=%s\n", stk.line, stk.name, stk.file);
+        end % for i
         profile.diss = mkEmptyDissStruct(dissInfo);
     end % try
 else % Too little data, so fudge up profile.diss
