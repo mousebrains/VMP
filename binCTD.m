@@ -13,12 +13,16 @@ fnCombo = info.("ctdFilename");
 fnInfo  = info.("ctdInfoFilename");
 
 cInfo = table();
-cInfo.fnProf = unique(pInfo.fnProf);
+[cInfo.fnProf, ix] = unique(pInfo.fnProf);
+cInfo.sn = pInfo.sn(ix);
+cInfo.basename = pInfo.basename(ix);
+cInfo.fnCTD = fullfile(info.ctdRoot, cInfo.sn, append(cInfo.basename, ".mat"));
 cInfo.qIncluded = false(size(cInfo.fnProf));
 
 if exist(fnInfo, "file")
     lhs = load(fnInfo).cInfo;
-    cInfo = myJoiner(cInfo, lhs, "fnProf");
+    lhs.fnCTD = fullfile(info.ctdRoot, lhs.sn, append(lhs.basename, ".mat")); % Update path if needed
+    cInfo = myJoiner(cInfo, lhs, "fnProf", "fnCTD");
 end % if exist
 
 newInfo = cInfo(~cInfo.qIncluded,:);
@@ -32,14 +36,27 @@ allNames = strings(0,1);
 qExist = isfile(fnCombo);
 tbl = cell(size(newInfo,1) + qExist,1);
 
-dtBin = 0.5;
+dtBin = info.bin_ctd_dt;
 
 for index = 1:size(newInfo,1)
     stime = tic();
-    fnProf = newInfo.fnProf(index);
+    row = newInfo(index,:);
+    fnProf = row.fnProf;
+    if isnewer(row.fnCTD, fnProf)
+        fprintf("Newer %s\n", row.fnCTD);
+        b = load(row.fnCTD).b;
+        allNames = union(allNames, string(b.Properties.VariableNames));
+        tbl{index} = b;
+        fprintf("CTDbin %.2f seconds n=%d %d/%d %s Loaded\n", ...
+            toc(stime), size(b,1), index, size(newInfo,1), fnProf);
+        continue;
+    end
+
     rhs = load(fnProf, "ctd", "chlorophyll");
+
     ctd = rhs.ctd;
     chl = rhs.chlorophyll;
+
     t0 = min(ctd.t);
     t1 = max(ctd.t);
     if ~isempty(chl)
@@ -53,43 +70,43 @@ for index = 1:size(newInfo,1)
 
     ctd.grp = findgroups(interp1(tBins, iBins, ctd.t, "previous"));
 
-    oNames = setdiff(string(ctd.Properties.VariableNames), ["grp", "t"]);
+    myFun = @(tbl, name) rowfun(@(x) median(x, "omitmissing"), tbl, ...
+        "InputVariables", name, ...
+        "GroupingVariables", "grp", ...
+        "OutputVariableNames", name);
 
-    b = rowfun(@(x) median(x, 1, "omitmissing"), ctd, ...
-        "SeparateInputs", false, ...
-        "InputVariables", oNames, ...
-        "GroupingVariables", "grp", ...
-        "OutputVariableNames", "val");
-    aa = array2table(b.val, "VariableNames", oNames);
-    aa.grp = b.grp;
-    aa.nSlow = b.GroupCount;
-    b = rowfun(@(x) median(x, "omitmissing"), ctd, ...
-        "InputVariables", "t", ...
-        "GroupingVariables", "grp", ...
-        "OutputVariableNames", "t");
-    aa.tCTD = b.t;
-    aa.t = interp1(tBins, tBins, aa.tCTD, "previous") + seconds(dtBin / 2);
+    b = myFun(ctd, "t");
+    b = removevars(b, "grp");
+    b = renamevars(b, "GroupCount", "nSlow");
+    b.tSlow = b.t;
+    b.t = interp1(tBins, tBins, b.tSlow, "previous");
+    for name = setdiff(string(ctd.Properties.VariableNames), ["grp", "t"])
+        temp = myFun(ctd, name);
+        b.(name) = temp.(name);
+    end % for
 
     if ~isempty(chl)
-        names = string(chl.Properties.VariableNames);
-        xNames = ["grp", "t", "depth", "lat", "lon"];
         chl.grp = findgroups(interp1(tBins, iBins, chl.t, "previous"));
-        b = rowfun(@(x) median(x, "omitmissing"), chl, ...
-            "SeparateInputs", false, ...
-            "InputVariables", setdiff(names, xNames), ...
-            "GroupingVariables", "grp", ...
-            "OutputVariableNames", "val");
-        ab = array2table(b.val, "VariableNames", setdiff(names, union("GroupCount", xNames)));
-        ab.grp = b.grp;
-        ab.nFast = b.GroupCount;
-        aa = innerjoin(aa, ab, "Keys", "grp");
+        bb = myFun(chl, "t");
+        for name = setdiff(string(chl.Properties.VariableNames), string(ctd.Properties.VariableNames))
+            temp = myFun(chl, name);
+            bb.(name) = temp.(name);
+        end % for
+        bb = removevars(bb, "grp");
+        bb = renamevars(bb, ["GroupCount", "t"], ["nFast", "tFast"]);
+        bb.t = interp1(tBins, tBins, bb.tFast, "previous");
+        b = outerjoin(b, bb, "Keys", "t", "MergeKeys", true);
     end % if ~isempty
 
-    aa = removevars(aa, "grp");
+    b.t = b.t + seconds(dtBin / 2); % Bin centroid
 
-    allNames = union(allNames, string(aa.Properties.VariableNames));
-    tbl{index} = aa;
-    fprintf("Took %.2f seconds to load %s\n", toc(stime), fnProf);
+    myMkDir(row.fnCTD);
+    save(row.fnCTD, "b");
+
+    allNames = union(allNames, string(b.Properties.VariableNames));
+    tbl{index} = b;
+    fprintf("CTDbin %.2f seconds n=%d %d/%d %s\n", ...
+        toc(stime), size(b,1), index, size(newInfo,1), fnProf);
 end % for
 
 if qExist
@@ -103,12 +120,15 @@ tbl = tbl(~cellfun(@isempty, tbl)); % Prune any empty entries
 for index = 1:size(tbl,1)
     tNames = sort(string(tbl{index}.Properties.VariableNames));
     for name = setdiff(allNames, tNames)' % Add in missing columns
-        fprintf("Adding %s for %s\n", name, newInfo.fnProf(index));
-        tbl{index}.(name) = nan(size(tbl{index},1),1);
+        if ismember(name, ["tSlow", "tFast"])
+            tbl{index}.(name) = NaT(size(tbl{index},1),1);
+        else
+            tbl{index}.(name) = nan(size(tbl{index},1),1);
+        end % if ismember
     end % for
 end % for index
 
-tbl = vertcat(tbl{:});
+tbl = vertcat(tbl{:}); % This takes care of column realignment
 
 [~, ix] = unique(tbl.t); % Unique and ascending in t
 tbl = tbl(ix,:);
@@ -121,7 +141,7 @@ saveNetCDF(fnCombo, tbl, info);
 
 cInfo.qIncluded(:) = true;
 save(fnInfo, "cInfo");
-fprintf("Wrote %dx%d to %s\n", size(tbl,1), size(tbl,2), fnCombo);
+fprintf("CTDbin wrote %dx%d to %s\n", size(tbl,1), size(tbl,2), fnCombo);
 end % binCTD
 
 
