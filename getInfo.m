@@ -66,13 +66,11 @@ addParameter(p, "diss_downwards_length_fac", 2, validPositive); % Multiples fft_
 addParameter(p, "diss_upwards_length_fac", 2, validPositive); % Multiples fft_length_sec to get dissipation length for bottom -> top estimates
 addParameter(p, "diss_T1Norm", 1, validPositive); % Value to multiple T1_fast temperature probe by to calculate mean for dissipation estimate
 addParameter(p, "diss_T2Norm", 1, validPositive); % Value to multiple T2_fast temperature probe by to calculate mean for dissipation estimate
-addParameter(p, "diss_warning_ratio", 5); % if e samples are further than this apart, tag as big
-addParameter(p, "diss_warning_fraction", 0.15); % When to warn about difference of e probes > diss_warning_ratio
+addParameter(p, "diss_warning_fraction", 0.1); % When to warn about difference of e probes > diss_warning_ratio
+addParameter(p, "diss_epsilon_minimum", 3e-10, validPositive); % Dissipation estimates less than this are set to nan, for bad electronics
 %% Binning parameters
 addParameter(p, "bin_method", "median", @(x) ismember(x, ["median", "mean"])); % Which method to use to combine bins together
 addParameter(p, "bin_Width", 1, validPositive); % Bin width in (m)
-addParameter(p, "bin_dissFloor", 1e-11, validPositive); % Dissipation estimates less than this are set to nan, for bad electronics
-addParameter(p, "bin_dissRatio", 5, validPositive); % If different probes are within this ratio, then use mean else the smaller one
 %% CTD time binning parameters
 addParameter(p, "bin_ctd_dt", 0.5, validPositive); % Width in seconds of CTD binning
 %% NetCDF global attributes
