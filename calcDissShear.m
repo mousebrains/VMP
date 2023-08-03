@@ -1,3 +1,4 @@
+
 % Despike a profile, then calculate the dissipation from the shear probes
 %
 % This is a ground up rewrite of my code derived from Fucent's code
@@ -11,31 +12,33 @@ arguments
     info struct,
 end % arguments
 
-[dissInfo, SH_HP, A_HP] = mkDissInfo(profile, info, pInfo, ...
-    "diss_downwards_fft_length_sec", "diss_downwards_length_fac");
+label = sprintf("%s/%s cast %d", pInfo.sn, pInfo.basename, pInfo.index);
+
+[dissInfo, SH_HP, AA] = mkDissInfo(profile, info, pInfo, ...
+    "diss_downwards_fft_length_sec", "diss_downwards_length_fac", label);
 
 if info.trim_use % Trim the top of the profile
     q = dissInfo.P >= (pInfo.trimDepth + info.trim_extraDepth);
     SH_HP = SH_HP(q,:);
-    A_HP  = A_HP(q,:);
+    AA  = AA(q,:);
     for name = ["speed", "T", "t", "P"]
         dissInfo.(name) = dissInfo.(name)(q);
     end % for name
 end % if trim_use
 
-
 if size(SH_HP,1) >= dissInfo.diss_length % enough data to work with
     try
-        diss = get_diss_odas(SH_HP, A_HP, dissInfo);
+        diss = get_diss_odas(SH_HP, AA, dissInfo);
+        diss = mkEpsilonMean(diss, info.diss_epsilon_minimum, dissInfo.diss_length, ...
+            profile.fs_fast, info.diss_warning_fraction, label);
         diss.depth = interp1(profile.slow.t_slow, profile.slow.depth, diss.t, "linear", "extrap");
-
-        ratioWarn(diss, pInfo, info, "Top->Bot");
+        diss.t = pInfo.t0 + seconds(diss.t - diss.t(1));
         profile.diss = mkDissStruct(diss, dissInfo);
     catch ME
-        fprintf("Error calculating Top->Bottom dissipation, %s\n", ME.message);
+        fprintf("Error %s calculating Top->Bottom dissipation, %s\n", label, ME.message);
         for i = 1:numel(ME.stack)
             stk = ME.stack(i);
-            fprintf("Stack(%d) line=%d name=%s file=%s\n", stk.line, stk.name, stk.file);
+            fprintf("Stack(%d) line=%d name=%s file=%s\n", i, stk.line, string(stk.name), string(stk.file));
         end % for i
         profile.diss = mkEmptyDissStruct(dissInfo);
     end % try
@@ -46,13 +49,13 @@ end % if ~isempty
 
 %% Calculate dissipation bottom to top
 
-[dissInfo, SH_HP, A_HP] = mkDissInfo(profile, info, pInfo, ...
-    "diss_upwards_fft_length_sec", "diss_upwards_length_fac");
+[dissInfo, SH_HP, AA] = mkDissInfo(profile, info, pInfo, ...
+    "diss_upwards_fft_length_sec", "diss_upwards_length_fac", label);
 
 if info.bbl_use % Trim the bottom of the profile
     q = dissInfo.P <= (pInfo.bottomDepth + info.bbl_extraDepth);
     SH_HP = SH_HP(q,:);
-    A_HP  = A_HP(q,:);
+    AA  = AA(q,:);
     for name = ["speed", "T", "t", "P"]
         dissInfo.(name) = dissInfo.(name)(q);
     end % for name
@@ -62,22 +65,22 @@ if size(SH_HP,1) >= dissInfo.diss_length % enough data to work with
     % flip upside down so the dissipation is calculated from the bottom upwards
 
     SH_HP = flipud(SH_HP);
-    A_HP = flipud(A_HP);
+    AA = flipud(AA);
     for name = ["speed", "T", "t", "P"]
         dissInfo.(name) = flipud(dissInfo.(name));
     end % for name
 
     try
-        diss = get_diss_odas(SH_HP, A_HP, dissInfo);
+        diss = get_diss_odas(SH_HP, AA, dissInfo);
+        diss = mkEpsilonMean(diss, info.diss_epsilon_minimum, dissInfo.diss_length, ...
+            profile.fs_fast, info.diss_warning_fraction, label);
         diss.depth = interp1(profile.slow.t_slow, profile.slow.depth, diss.t, "linear", "extrap");
-
-        ratioWarn(diss, pInfo, info, "Bot->Top");
         profile.bbl = mkDissStruct(diss, dissInfo);
     catch ME
-        fprintf("Error calculating Bottom->Top dissipation, %s\n", ME.message);
+        fprintf("Error %s calculating Bottom->Top dissipation, %s\n", label, ME.message);
         for i = 1:numel(ME.stack)
             stk = ME.stack(i);
-            fprintf("Stack(%d) line=%d name=%s file=%s\n", stk.line, stk.name, stk.file);
+            fprintf("Stack(%d) line=%d name=%s file=%s\n", i, stk.line, string(stk.name), string(stk.file));
         end % for i
         profile.diss = mkEmptyDissStruct(dissInfo);
     end % try
@@ -110,7 +113,7 @@ tbl = table();
 % I don't like this hardcoding, but for single dissipation estimates I have
 % not found a clean dynamic method!
 npNames = ["e", "K_max", "method", "dof_e", "mad", "FM"];
-pNames = ["speed", "nu", "P", "T", "t"];
+pNames = ["speed", "nu", "P", "T", "t", "epsilonMean", "epsilonLnSigma", "depth"];
 mnpNames = "Nasymth_spec";
 
 for name = string(fieldnames(diss))'
@@ -128,51 +131,45 @@ end % for
 dInfo.tbl = tbl;
 end % mkDissStruct
 
-function ratioWarn(diss, pInfo, info, tit)
-arguments
-    diss struct
-    pInfo table
-    info struct
-    tit string
-end % arguments
-%%
-maxRatio = log10(info.diss_warning_ratio) / 2; % /2 due to mean
-eLog = log10(diss.e);
-mu = repmat(mean(eLog, "omitmissing"), size(diss.e,1), 1);
-qFrac = sum(any(abs(mu - eLog) > maxRatio)) / size(diss.e,2);
-if qFrac > info.diss_warning_fraction
-    fprintf("Bad %s dissipation ratio, %.0f%% %d/%d for profile %d in %s %s\n", ...
-        tit, qFrac * 100, ...
-        round(qFrac*size(diss.e,2)), size(diss.e,2), ...
-        pInfo.index, pInfo.sn, pInfo.basename);
-end % if qFrac
-end % ratioWarn
-
-function [dissInfo, SH_HP, A_HP] = mkDissInfo(profile, info, pInfo, fftSec, fftFac)
+function [dissInfo, SH_HP, AA] = mkDissInfo(profile, info, pInfo, fftSec, fftFac, label)
 arguments
     profile struct
     info struct
     pInfo (1,:) table
     fftSec string
     fftFac string
+    label string
 end % arguments
 %%
 fast = profile.fast; % fast variables for despiking
 fft_length_sec = info.(fftSec);
 fft_length_fac = info.(fftFac);
 
-Ax = myDespike(fast.Ax, profile.fs_fast, info, "A", append("Ax ", fftSec), pInfo);
-Ay = myDespike(fast.Ay, profile.fs_fast, info, "A", append("Ay ", fftSec), pInfo);
-SH1 = myDespike(fast.sh1, profile.fs_fast, info, "sh", append("sh1 ", fftSec), pInfo);
-SH2 = myDespike(fast.sh2, profile.fs_fast, info, "sh", append("sh2 ", fftSec), pInfo);
+AA = table();
+for name = ["Ax", "Ay"]
+    AA.(name) = myDespike(fast.(name), profile.fs_fast, info, "A", ...
+        append(label, " ", name, " ", fftSec), pInfo);
+end
+AA = table2array(AA);
 
-%% High pass signal for dissipation
+% Grab all the shear probes
+names = regexp(string(fast.Properties.VariableNames), "^sh\d+$", "once", "match");
+names = unique(names(~ismissing(names))); % Sorted shear probes, assumes <10 shear probes
+
+SH = table(); % Space for all the shear probes
+for name = names
+    SH.(name) = myDespike(fast.(name), profile.fs_fast, info, "sh", ...
+        append(label, " ", name, " ", fftSec), pInfo);
+end % for
+SH = table2array(SH);
 
 HP_cut = 0.5 * 1 / fft_length_sec; % Follow Matlab manual
 [bh, ah] = butter(1, HP_cut / profile.fs_fast / 2, "high");
-
-SH1_HP = myHighPassFilter(SH1, ah, bh); % Filter SH1
-SH2_HP = myHighPassFilter(SH2, ah, bh); % Filter SH2
+% Do a forward filter then flip and reverse filter
+SH_HP = filter(bh, ah, SH); % Filter forwards
+SH_HP = flipud(SH_HP); % Flip forwards to backwards
+SH_HP = filter(bh, ah, SH_HP); % Filter backwards
+SH_HP = flipud(SH_HP); % Flip backwards to forward
 
 %% Calculate dissipation top to bottom
 
@@ -183,12 +180,9 @@ dissInfo.overlap = ceil(dissInfo.diss_length / 2);
 dissInfo.fs_fast = profile.fs_fast;
 dissInfo.fs_slow = profile.fs_slow;
 dissInfo.speed = fast.speed_fast;
-dissInfo.T = (info.diss_T1Norm * fast.T1_fast*2 + info.diss_T2Norm * fast.T2_fast) / (info.diss_T1Norm + info.diss_T2Norm); 
+dissInfo.T = (info.diss_T1Norm * fast.T1_fast + info.diss_T2Norm * fast.T2_fast) / (info.diss_T1Norm + info.diss_T2Norm);
 dissInfo.t = fast.t_fast;
 dissInfo.P = fast.P_fast;
-
-SH_HP = [SH1_HP, SH2_HP];
-A_HP = [Ax, Ay];
 end % mkDissInfo
 
 function b = myDespike(a, fs, info, codigo, tit, pInfo)
@@ -215,16 +209,63 @@ if raction > p.warning_fraction
 end % raction >
 end % myDespike
 
-function hp = myHighPassFilter(sh, ah, bh)
+%% Get the mean epsilon, subject to expected variance
+
+function diss = mkEpsilonMean(diss, epsilonMinimumValue, diss_length, fs, warningFraction, label)
 arguments
-    sh (:,1) {mustBeNumeric}
-    ah (1,:) {mustBeNumeric}
-    bh (1,:) {mustBeNumeric}
-end % arguments
-%%
-% Do a forward filter then flip and reverse filter
-hp = filter(bh, ah, sh); % Filter forwards
-hp = flipud(hp); % Flip forwards to backwards
-hp = filter(bh, ah, hp); % Filter backwards
-hp = flipud(hp); % Flip backwards to forward
-end % myHighPassFilter
+    diss struct % From get_diss_odas
+    epsilonMinimumValue double {mustBePositive}
+    diss_length double {mustBePositive}
+    fs double {mustBePositive}
+    warningFraction double
+    label string
+end
+
+nu = diss.nu; % Dynamic viscosity
+epsilon = diss.e'; % Transposed dissipation estimates
+q = epsilon <= epsilonMinimumValue; % Values which should not exist, probably bad electronics
+if any(q(:))
+    epsilon(q) = nan;
+    for index = 1:size(q,2)
+        n = sum(q(:,index));
+        if n > 0
+            frac = n / size(q,1);
+            if frac > warningFraction
+                fprintf("WARNING: %s %.2f%% of the values for epsilon %d <= %g\n", ...
+                    label, frac*100, index, epsilonMinimumValue);
+            end % if
+        end % if
+    end % for
+end % if any
+
+L_K = (nu.^3 ./ epsilon).^(1/4); % Kolmogorov length (kg/m/s)
+L = diss.speed * diss_length / fs; % Physical length of the data
+L_hat = L ./ L_K;
+
+Vf = 1; % Fraction of shear variance resolved by terminating the spectral integration at an upper wavenumber
+
+L_f_hat = L_hat .* Vf.^(3/4);
+
+var_ln_epsilon = 5.5 ./ (1 + (L_f_hat ./ 4).^(7/9)); % Variance of epsilon in log space
+sigma_ln_epsilon = sqrt(var_ln_epsilon); % Standard deviation of epsilon in log space
+mu_sigma_ln_epsilon = mean(sigma_ln_epsilon, 2, "omitmissing"); % Mean across shear probes at each time
+CF95_range = 1.96 * sqrt(2) * mu_sigma_ln_epsilon; % 95% confidence interval in log space
+
+for iter = 1:(size(epsilon,2)-1) % To avoid an infinite loop, this is the an at most amount
+    minE = min(epsilon, [], 2, "omitmissing");
+    [maxE, ix] = max(epsilon, [], 2, "omitmissing"); % get indices in case we want to drop them
+    ratio = abs(diff(log([minE, maxE]), 1, 2));
+    q = ratio > CF95_range; % If minE and maxE ratio -> 95% confidence interval
+    if ~any(q), break; end % We're done, we can use all the values
+    epsilon(sub2ind(size(epsilon), find(q), ix(q))) = nan; % Set the maximums that are outside the 95% interval to nan
+    frac = sum(q) / size(epsilon,1);
+    if frac > warningFraction
+        fprintf("WARNING: %s dropping %.2f%% epsilons outside of 95%% confidence interval, iter=%d\n", ...
+            label, sum(q) / size(epsilon,1) * 100, iter);
+    end % if
+end % for iter
+
+mu = exp(mean(log(epsilon), 2, "omitmissing")); % Take the mean of the remaining values in log space
+diss.epsilonMean = mu;
+diss.epsilonLnSigma = mu_sigma_ln_epsilon;
+end % mkEpsilonMean
