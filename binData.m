@@ -11,9 +11,9 @@ dz = info.bin_Width; % Bin stepsize (m)
 method = info.bin_method; % Which method to aggregate the data together
 if ~isa(method, "function_handle")
     if method == "median"
-        method = @(x) median(x, "omitmissing");
+        method = @(x) median(x, 1, "omitmissing");
     elseif method == "mean"
-        method = @(x) mean(x, "omitmissing");
+        method = @(x) mean(x, 1, "omitmissing");
     else
         error("Unrecognized binning method %s\n", method)
     end % if
@@ -53,16 +53,16 @@ for fnProf = unique(pInfo.fnProf)'
         fast = fast(~isnan(fast.bin),:); % Take off values above the first bin
         slow = slow(~isnan(slow.bin),:);
 
-        if isfield(profile, "diss") && isfield(profile.diss, "tbl")
+        if isfield(profile, "diss") && isfield(profile.diss, "tbl") && ~isempty(profile.diss.tbl)
             diss = profile.diss.tbl;
-            diss.bin = interp1(allBins-dz/2, allBins, diss.P, "previous"); % Might be empty
+            diss.bin = interp1(allBins-dz/2, allBins, diss.depth, "previous"); % Might be empty
             diss = diss(~isnan(diss.bin),:);
         else
             diss = table();
         end % if
-        if isfield(profile, "bbl") && isfield(profile.bbl, "tbl")
+        if isfield(profile, "bbl") && isfield(profile.bbl, "tbl") && ~isempty(profile.bbl.tbl)
             bbl = profile.bbl.tbl;
-            bbl.bin = interp1(allBins-dz/2, allBins, bbl.P, "previous"); % Might be empty
+            bbl.bin = interp1(allBins-dz/2, allBins, bbl.depth, "previous"); % Might be empty
             bbl = bbl(~isnan(bbl.bin),:);
         else
             bbl = table();
@@ -115,32 +115,12 @@ for fnProf = unique(pInfo.fnProf)'
         %   p is the number of pressure bins
 
         if ~isempty(diss) % Top downwards
-            diss.grp = findgroups(diss.bin);
-            diss.e(diss.e < info.bin_dissFloor) = nan;
-
-            tblD = rowfun(@(bin, e, FM) myDiss(bin, e, FM, info, method), ...
-                diss, ...
-                "InputVariables", ["bin", "e", "FM"], ...
-                "GroupingVariables", "grp", ...
-                "OutputVariableNames", ["bin", "e", "FM"]);
-            tblD = removevars(tblD, "grp"); % Drop grouping variable
-            tblD = renamevars(tblD, "GroupCount", "cntDiss");
+            tblD = binDiss(diss, "diss", method);
             tbl = outerjoin(tbl, tblD, "Keys", "bin", "MergeKeys", true);
         end % if ~isempty diss
 
         if ~isempty(bbl) % Bottom upwards
-            bbl.grp = findgroups(bbl.bin);
-            bbl.e(bbl.e < info.bin_dissFloor) = nan;
-
-            tblB = rowfun(@(bin, e, FM) myDiss(bin, e, FM, info, method), ...
-                bbl, ...
-                "InputVariables", ["bin", "e", "FM"], ...
-                "GroupingVariables", "grp", ...
-                "OutputVariableNames", ["bin", "e", "FM"]);
-            tblB = removevars(tblB, "grp"); % Drop grouping variable
-            tblB = renamevars(tblB, ...
-                ["GroupCount", "e", "FM"], ...
-                ["cntBBL", "e_bbl", "FM_bbl"]);
+            tblB = binDiss(bbl, "bbl", method);
             tbl = outerjoin(tbl, tblB, "Keys", "bin", "MergeKeys", true);
         end % if ~isempty bbl
         %%
@@ -183,7 +163,18 @@ for fnProf = unique(pInfo.fnProf)'
             error("Unexpected empty innerjoin")
         end % if isempty
         for name = setdiff(string(rhs.Properties.VariableNames), "bin")
+            try
             tbl.(name)(iLeft,iCast) = rhs.(name)(iRight);
+            catch ME
+                ME
+                name
+                iCast
+                size(iRight)
+                size(iLeft)
+                head(rhs)
+                head(tbl)
+                rethrow(ME)
+            end % try
         end % for name
     end % for iCast;
 
@@ -197,29 +188,35 @@ for fnProf = unique(pInfo.fnProf)'
 end % for filenames
 end % binData
 
-function [bin, dissipation, FM] = myDiss(bins, e, FMs, info, method)
-bin = bins(1); % We grouped by this variable, so all the same
+function tbl = binDiss(diss, suffix, method)
+arguments
+    diss table
+    suffix string
+    method function_handle
+end
 
-FMs(isnan(e)) = nan; % FMs we won't use are set to NaN
-logDiss = log10(e); % dissipation is log normal, so work in log space
-threshold = log10(info.bin_dissRatio)/2; % /2 is for distance from mean
-mu = mean(logDiss, 2, "omitmissing"); % Mean of each row
-q = abs(logDiss - mu) < threshold; % Identify values close to the mean
-b = logDiss; % Copy for calculating mean on values near mean
-b(~q) = nan; % NaN outliers
-mu = mean(b, 2, "omitmissing"); % Mean of non-outliers
-b = FMs;
-b(~q) = nan; % NaN outliers
-muFM = mean(b, 2, "omitmissing"); % Mean of non-outlier figure of merit
+logNormalNames = ["e", "epsilonMean"];
 
-qMin = isnan(mu); % Use min if everybody is an outlier
-if any(qMin) % There are rows with only outliers
-    [bMin, ix] = min(logDiss(qMin,:), [], 2, "omitmissing"); % Rowwise min
-    ii = sub2ind(size(logDiss), find(qMin), ix); % Index into FMs
-    mu(qMin) = bMin; % Rows with only outliers now are the min
-    muFM(qMin) = FMs(ii); % Minimum's FM
-end % if any qMin
+suffix = append("_", suffix);
 
-dissipation = 10.^(method(mu));
-FM = method(muFM);
-end % myDiss
+names = string(diss.Properties.VariableNames);
+[~, ix] = sort(lower(names)); % Dictionary sort for humans
+names = names(ix);
+
+grp = findgroups(diss.bin);
+
+tbl = table();
+tbl.cnt = splitapply(@numel, diss.t, grp);
+
+for name = setdiff(names, "t")
+    qLog = ismember(name, logNormalNames); % Is this a log normal column
+    val = diss.(name);
+    if qLog, val = log(val); end
+    tbl.(name) = splitapply(method, val, grp);
+    if qLog, tbl.(name) = exp(tbl.(name)); end
+end % for
+
+names = setdiff(string(tbl.Properties.VariableNames), "bin");
+names = names(~endsWith(names, suffix));
+tbl = renamevars(tbl, names, append(names, suffix));
+end % binDiss
