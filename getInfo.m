@@ -152,8 +152,6 @@ a.comboInfoFilename = fullfile(a.binnedRoot, "combo.info.mat");
 a.comboFilename = fullfile(a.binnedRoot, "combo.mat");
 a.ctdFilename = fullfile(a.ctdRoot, "CTD.mat");
 a.ctdInfoFilename = fullfile(a.ctdRoot, "CTD.info.mat");
-a.chlorophyllFilename = fullfile(a.ctdRoot, "chlorophyll.mat");
-a.chlorophyllInfoFilename = fullfile(a.ctdRoot, "chlorophyll.info.mat");
 end % getInfo
 
 %% Function to check if a value, string or numeric, is in a range, open/closed
